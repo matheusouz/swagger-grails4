@@ -1,13 +1,11 @@
 package swagger.grails4.openapi.builder
 
 import io.swagger.v3.oas.models.media.Schema
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
 
-class SchemaBuilder implements AnnotationBuilder<Schema> {
+class OpenApiSchemaBuilder implements OpenApiAnnotationBuilder<Schema> {
     Schema model = new Schema()
 
-    /**
-     * needed by AnnotationBuilder trait
-     */
     @SuppressWarnings("unused")
     static Class openApiAnnotationClass = Schema
 
@@ -21,12 +19,9 @@ class SchemaBuilder implements AnnotationBuilder<Schema> {
         }
     }
 
-    /**
-     * Build Schema object from class or closure, if it exists already then clone one with $ref value set.
-     */
     Schema buildSchema(Object classOrClosure) {
         if (classOrClosure instanceof Closure) {
-            def builder = new SchemaBuilder(reader: reader)
+            def builder = new OpenApiSchemaBuilder(reader: reader)
             return evaluateClosure(classOrClosure, builder)
         }else{
             return reader.buildSchema(classOrClosure as Class)

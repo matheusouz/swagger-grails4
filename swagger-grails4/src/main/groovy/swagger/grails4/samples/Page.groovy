@@ -1,17 +1,17 @@
 package swagger.grails4.samples
 
-import swagger.grails4.openapi.ApiDoc
+import swagger.grails4.openapi.OpenApiDoc
 
-@ApiDoc("Page Command")
+@OpenApiDoc("Page Command")
 trait Page {
     /**
      * Page size
      */
-    @ApiDoc("max")
+    @OpenApiDoc("max")
     int max
     /**
      * Offset of records
      */
-    @ApiDoc("offset")
+    @OpenApiDoc("offset")
     int offset
 }

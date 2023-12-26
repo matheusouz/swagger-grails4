@@ -1,12 +1,10 @@
 package swagger.grails4.openapi
 
-import org.codehaus.groovy.transform.GroovyASTTransformationClass
-
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 
 @Retention(RetentionPolicy.RUNTIME)
-@interface ApiDoc {
+@interface OpenApiDoc {
 
     String value() default ""
 

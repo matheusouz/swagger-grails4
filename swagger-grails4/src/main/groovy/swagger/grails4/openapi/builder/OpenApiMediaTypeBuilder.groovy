@@ -1,32 +1,23 @@
 package swagger.grails4.openapi.builder
 
 import io.swagger.v3.oas.models.media.MediaType
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
+import swagger.grails4.openapi.builder.OpenApiSchemaBuilder
 
-class MediaTypeBuilder implements AnnotationBuilder<MediaType> {
+class OpenApiMediaTypeBuilder implements OpenApiAnnotationBuilder<MediaType> {
     MediaType model = new MediaType()
-    /**
-     * needed by AnnotationBuilder trait.
-     * This is not an annotation but model class, but it should work as the same.
-     */
+
     @SuppressWarnings("unused")
     static Class openApiAnnotationClass = MediaType
 
-    /**
-     * Build schema from class or closure
-     * @param classOrClosure domain class or schema definition closure
-     * @param options additional options such as:
-     *  'properties' - to override some properties of schema.
-     */
     def schema(Map options, classOrClosure) {
-        SchemaBuilder builder = new SchemaBuilder(reader: reader)
+        OpenApiSchemaBuilder builder = new OpenApiSchemaBuilder(reader: reader)
         model.schema = builder.buildSchema(classOrClosure)
 
         if (options && options["properties"]) {
-            // schema with properties-overridden should not use $ref
             model.schema.$ref = null
-            // override properties of schema
             options["properties"].each { propName, propDefinition ->
-                def propSchemaBuilder = new SchemaBuilder(reader: reader)
+                def propSchemaBuilder = new OpenApiSchemaBuilder(reader: reader)
                 def schema = propSchemaBuilder.buildSchema(propDefinition)
                 this.model.schema.properties.put(propName, schema)
             }
@@ -37,9 +28,6 @@ class MediaTypeBuilder implements AnnotationBuilder<MediaType> {
         schema([:], classOrClosure)
     }
 
-    /**
-     * for call in "schema classOrClosure, [properties: {...}]" form
-     */
     def schema(classOrClosure, Map options) {
         schema(options, classOrClosure)
     }

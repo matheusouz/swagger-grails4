@@ -1,16 +1,15 @@
 package swagger.grails4.openapi.builder
 
 import io.swagger.v3.oas.models.tags.Tag
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
 
-class TagBuilder implements AnnotationBuilder<Tag> {
+class OpenApiTagBuilder implements OpenApiAnnotationBuilder<Tag> {
     Tag model = new Tag()
-    /**
-     * needed by AnnotationBuilder trait
-     */
+
     @SuppressWarnings("unused")
     static Class openApiAnnotationClass = io.swagger.v3.oas.annotations.tags.Tag
 
-    TagBuilder(){
+    OpenApiTagBuilder(){
         initPrimitiveElements()
     }
 }

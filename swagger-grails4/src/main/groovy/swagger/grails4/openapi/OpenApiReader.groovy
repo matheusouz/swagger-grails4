@@ -1,12 +1,11 @@
 package swagger.grails4.openapi
 
 import io.swagger.v3.oas.models.parameters.Parameter
-import main.swagger.grails4.openapi.ApiDocExampleValue
-import main.swagger.grails4.openapi.ApiDocGenericValue
-import main.swagger.grails4.openapi.builder.ApiDocExampleValueBuilder
-import main.swagger.grails4.openapi.builder.ApiDocGenericValueBuilder
+import main.swagger.grails4.openapi.OpenApiDocExampleValue
+import main.swagger.grails4.openapi.OpenApiDocGenericValue
+import main.swagger.grails4.openapi.builder.OpenApiDocExampleValueBuilder
+import main.swagger.grails4.openapi.builder.OpenApiDocGenericValueBuilder
 
-// import grails.artefact.DomainClass
 import org.codehaus.groovy.grails.commons.GrailsApplication
 import org.codehaus.groovy.grails.commons.GrailsControllerClass
 import org.codehaus.groovy.grails.validation.ConstrainedProperty
@@ -16,7 +15,6 @@ import org.codehaus.groovy.grails.web.mapping.UrlMapping
 import org.codehaus.groovy.grails.web.mapping.UrlMappingsHolder
 import groovy.util.logging.Slf4j
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration
-import io.swagger.v3.oas.integration.api.OpenApiReader
 import io.swagger.v3.oas.models.OpenAPI
 import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.PathItem
@@ -29,11 +27,10 @@ import io.swagger.v3.oas.models.parameters.RequestBody
 import io.swagger.v3.oas.models.servers.Server
 import io.swagger.v3.oas.models.tags.Tag
 import org.codehaus.groovy.grails.web.mapping.RegexUrlMapping
-import swagger.grails4.UrlMappings
-import swagger.grails4.openapi.ApiDoc
-import swagger.grails4.openapi.builder.AnnotationBuilder
-import swagger.grails4.openapi.builder.OperationBuilder
-import swagger.grails4.openapi.builder.TagBuilder
+import swagger.grails4.openapi.OpenApiDoc
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
+import swagger.grails4.openapi.builder.OpenApiOperationBuilder
+import swagger.grails4.openapi.builder.OpenApiTagBuilder
 
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -42,11 +39,10 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 
 @Slf4j
-class Reader implements OpenApiReader {
+class OpenApiReader implements io.swagger.v3.oas.integration.api.OpenApiReader {
 
     final static String JSON_MIME = "application/json"
     final static String MULTIPART_FORM_DATA_MIME = "multipart/form-data"
-
 
     OpenAPIConfiguration config
     GrailsApplication application
@@ -68,10 +64,9 @@ class Reader implements OpenApiReader {
         classes.each {
             processApiDocAnnotation(it)
         }
-        // sort controller by tag name
+
         openAPI.tags = openAPI.tags?.sort { it.name }
 
-        // append server information if not yet configured by application configuration
         String url = application.config.grails.serverURL
         if (url && !openAPI.getServers()) {
             openAPI.servers([new Server(url: url)])
@@ -81,17 +76,14 @@ class Reader implements OpenApiReader {
     }
 
     def processApiDocAnnotation(Class controllerClass) {
-        log.debug("Scanning class: ${controllerClass.simpleName}")
-        // get all controller grails artifacts
         def allControllerArtifacts = application.getArtefacts("Controller")
-        // find controller artifact with the same controller class
+
         GrailsControllerClass controllerArtifact = allControllerArtifacts.find { it.clazz == controllerClass } as GrailsControllerClass
         if (!controllerArtifact) {
-            log.error("No grails controller found for class ${controllerClass}")
             return
         }
 
-        if (controllerArtifact.clazz.getAnnotation(ApiDoc) == null) {
+        if (controllerArtifact.clazz.getAnnotation(OpenApiDoc) == null) {
             return
         }
 
@@ -112,13 +104,13 @@ class Reader implements OpenApiReader {
                 return
             }
 
-            def annotation = method.getAnnotation(ApiDoc)
+            def annotation = method.getAnnotation(OpenApiDoc)
             if (!annotation) {
                 return
             }
 
             Class closureClass = annotation.operation()
-            OperationBuilder operationBuilder = new OperationBuilder(reader: this)
+            OpenApiOperationBuilder operationBuilder = new OpenApiOperationBuilder(reader: this)
 
             operationBuilder.model.requestBody = buildRequestBody(actionName, controllerArtifact, urlMappingsHolder)
             operationBuilder.model.responses = buildResponses(annotation)
@@ -152,14 +144,11 @@ class Reader implements OpenApiReader {
         if (urlMappingOfAction) {
             httpMethod = buildHttpMethod(urlMappingOfAction, actionName)
             url = urlMappingOfAction.urlData.urlPattern
-            //Try to replace asterisk placeholders of path parameters
+
             if (urlMappingOfAction instanceof RegexUrlMapping) {
                 urlMappingOfAction.constraints.each { def constrainedProperty ->
-                    //Replace named wildcard with double * first
                     url = url.replaceFirst("\\(\\*\\*\\)", "\\(\\*\\)")
-                    //Then replace optional placeholder
                     url = url.replaceFirst("\\(\\(\\*\\)\\)\\?", "\\(\\*\\)")
-                    //Then replace variables
 
                     if (constrainedProperty.propertyName == "namespace") {
                         url = url.replaceFirst("\\(\\*\\)", urlMappingOfAction.namespace)
@@ -191,14 +180,14 @@ class Reader implements OpenApiReader {
             return tag
         }
 
-        ApiDoc annotation = grailsControllerClass.clazz.getAnnotation(ApiDoc) as ApiDoc
+        OpenApiDoc annotation = grailsControllerClass.clazz.getAnnotation(OpenApiDoc) as OpenApiDoc
         if (!annotation) {
             return tag
         }
 
         def tagClosure = annotation.tag()
         if (tagClosure) {
-            def tagFromClosure = processClosure(tagClosure, new TagBuilder(reader: this)) as Tag
+            def tagFromClosure = processClosure(tagClosure, new OpenApiTagBuilder(reader: this)) as Tag
 
             if (!tagFromClosure.name) {
                 tagFromClosure.name = tag.name
@@ -210,7 +199,7 @@ class Reader implements OpenApiReader {
         return tag
     }
 
-    private def processClosure(Class closureClass, AnnotationBuilder builder) {
+    private def processClosure(Class closureClass, OpenApiAnnotationBuilder builder) {
         if (closureClass) {
             Closure closure = closureClass.newInstance(openAPI, openAPI) as Closure
             closure.delegate = builder
@@ -227,7 +216,7 @@ class Reader implements OpenApiReader {
         return builder.model
     }
 
-    private Map buildResponses(ApiDoc annotation) {
+    private Map buildResponses(OpenApiDoc annotation) {
         Class responseType = annotation.responseType()
 
         Boolean isClosureResponseType = responseType.simpleName.contains("closure")
@@ -243,7 +232,7 @@ class Reader implements OpenApiReader {
                 )
         )
 
-        ApiDocExampleValue exampleValue = processClosure(annotation.examples(), new ApiDocExampleValueBuilder(reader: this))
+        OpenApiDocExampleValue exampleValue = processClosure(annotation.examples(), new OpenApiDocExampleValueBuilder(reader: this))
         if (!exampleValue.responses) return responses
 
         for (String key : exampleValue.responses.keySet()) {
@@ -293,7 +282,7 @@ class Reader implements OpenApiReader {
             }
 
             Boolean containsFileProperty = listClassProperties(commandClass).any({
-                ApiDoc annotation = it.field?.field.getAnnotation(ApiDoc)
+                OpenApiDoc annotation = it.field?.field.getAnnotation(OpenApiDoc)
 
                 return annotation && annotation.isFile()
             })
@@ -308,9 +297,9 @@ class Reader implements OpenApiReader {
             Content content = new Content()
             content.addMediaType(mime, new MediaType(schema: schema))
 
-            ApiDoc annotation = actionMethods.getAnnotation(ApiDoc)
+            OpenApiDoc annotation = actionMethods.getAnnotation(OpenApiDoc)
             if (annotation) {
-                ApiDocExampleValue exampleValue = processClosure(annotation.examples(), new ApiDocExampleValueBuilder(reader: this))
+                OpenApiDocExampleValue exampleValue = processClosure(annotation.examples(), new OpenApiDocExampleValueBuilder(reader: this))
 
                 if (exampleValue.request) {
                     String jsonMimeType = content.keySet().first()
@@ -415,7 +404,7 @@ class Reader implements OpenApiReader {
             if (!schema) {
                 schema = buildSchema(fieldType, field?.genericType)
 
-                ApiDoc annotation = field?.getAnnotation(ApiDoc)
+                OpenApiDoc annotation = field?.getAnnotation(OpenApiDoc)
                 if (annotation) {
                     def comments = annotation.value()
 
@@ -453,14 +442,14 @@ class Reader implements OpenApiReader {
                         schema.required = [fieldName]
                     }
 
-                    ApiDocGenericValue defaultValue = processClosure(annotation.defaultValue(), new ApiDocGenericValueBuilder(reader: this))
+                    OpenApiDocGenericValue defaultValue = processClosure(annotation.defaultValue(), new OpenApiDocGenericValueBuilder(reader: this))
 
                     if (defaultValue.value) {
                         schema.default = defaultValue.value
                         schema.example = defaultValue.value
                     }
 
-                    ApiDocGenericValue exampleValue = processClosure(annotation.example(), new ApiDocGenericValueBuilder(reader: this))
+                    OpenApiDocGenericValue exampleValue = processClosure(annotation.example(), new OpenApiDocGenericValueBuilder(reader: this))
 
                     if (exampleValue.value) {
                         schema.example = exampleValue.value
@@ -493,7 +482,6 @@ class Reader implements OpenApiReader {
 
         switch (typeAndFormat.type) {
             case "object":
-                // skip java.xxx/org.grails.xxx/org.springframework.xxx package class
                 String packageName = aClass.package?.name
                 if (packageName?.startsWith('java.') ||
                         packageName?.startsWith('org.grails.') ||
@@ -509,16 +497,13 @@ class Reader implements OpenApiReader {
 
                 break
             case "array":
-                // try to get array element type
                 Class itemClass = aClass.componentType
-                // extract item type for collections
                 if (!itemClass && Collection.isAssignableFrom(aClass) && genericType instanceof ParameterizedType) {
                     itemClass = genericType.actualTypeArguments[0] as Class
                 } else {
                     itemClass = itemClass ?: Object
                 }
                 if (itemClass && schema instanceof ArraySchema) {
-                    // Build object schema if not already done, and assign reference to it
                     schema.items =  buildSchema(itemClass)
                 }
                 break
@@ -588,7 +573,7 @@ class Reader implements OpenApiReader {
     }
 
     private static String buildSchemaDescription(Class aClass) {
-        ApiDoc apiDocAnnotation = aClass.getAnnotation(ApiDoc) as ApiDoc
+        OpenApiDoc apiDocAnnotation = aClass.getAnnotation(OpenApiDoc) as OpenApiDoc
 
         def description = apiDocAnnotation?.description()
         if (description) {
@@ -636,7 +621,7 @@ class Reader implements OpenApiReader {
             if (enumValue.hasProperty("id")) {
                 idPart = "(${enumValue.id})"
             }
-            // append ", " if idx > 0
+
             if (idx > 0) {
                 builder.append(", ")
             }
@@ -649,7 +634,6 @@ class Reader implements OpenApiReader {
     private static Schema cloneSchema(Schema schema) {
         Schema clone = new Schema()
         schema.metaClass.properties.each { prop ->
-            // only assign writable property
             def setMethod = Schema.methods.find {
                 it.name == "set${prop.name.capitalize()}"
             }
@@ -700,7 +684,7 @@ class Reader implements OpenApiReader {
 
     private static List<MetaProperty> listInPathProperties(Class aClass) {
         List<MetaProperty> inPathProperties = listClassProperties(aClass).findAll( {
-            ApiDoc annotation = it.field?.field.getAnnotation(ApiDoc)
+            OpenApiDoc annotation = it.field?.field.getAnnotation(OpenApiDoc)
 
             return annotation && annotation.inPath()
         })
@@ -730,16 +714,6 @@ class Reader implements OpenApiReader {
                 case "instanceControllersDomainBindingApi":
                 case "instanceConvertersApi":
                 case "errors":
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "version" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "transients" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "all" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "attached" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "belongsTo" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "constrainedProperties" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "dirty" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "dirtyPropertyNames" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "gormDynamicFinders" }:
-                    // case { DomainClass.isAssignableFrom(aClass) && fieldName == "gormPersistentEntity" }:
                     continue
             }
 

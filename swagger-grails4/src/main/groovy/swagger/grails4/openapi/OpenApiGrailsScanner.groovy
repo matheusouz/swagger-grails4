@@ -5,7 +5,7 @@ import org.codehaus.groovy.grails.commons.GrailsControllerClass
 import io.swagger.v3.oas.integration.api.OpenAPIConfiguration
 import io.swagger.v3.oas.integration.api.OpenApiScanner
 
-class GrailsScanner implements OpenApiScanner {
+class OpenApiGrailsScanner implements OpenApiScanner {
 
     GrailsApplication grailsApplication
     OpenAPIConfiguration openApiConfiguration

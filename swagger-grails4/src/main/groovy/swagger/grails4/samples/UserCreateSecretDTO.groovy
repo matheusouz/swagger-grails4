@@ -1,15 +1,14 @@
 package swagger.grails4.samples
 
-import grails.validation.Validateable
-import swagger.grails4.openapi.ApiDoc
-import swagger.grails4.samples.MyEnum
 
-@ApiDoc("The command contains Secret properties")
+import swagger.grails4.openapi.OpenApiDoc
+
+@OpenApiDoc("The command contains Secret properties")
 class UserCreateSecretDTO {
 
-    @ApiDoc(required = true, description = "its")
+    @OpenApiDoc(required = true, description = "its")
     String its
 
-    @ApiDoc(maximum = 15, minimum = 5, required = true, description = "seecreet")
+    @OpenApiDoc(maximum = 15, minimum = 5, required = true, description = "seecreet")
     String secret
 }

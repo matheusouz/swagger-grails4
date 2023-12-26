@@ -1,7 +1,7 @@
 package swagger.grails4.openapi
 
 
-class ApiDocExampleDTO {
+class OpenApiDocExampleDTO {
 
     String summary
     Object value

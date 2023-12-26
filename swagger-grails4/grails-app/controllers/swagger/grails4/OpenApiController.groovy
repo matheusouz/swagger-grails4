@@ -2,7 +2,7 @@ package swagger.grails4
 
 import grails.util.Environment
 import io.swagger.v3.core.util.Json
-import swagger.grails4.openapi.ApiDoc
+import swagger.grails4.openapi.OpenApiDoc
 
 /**
  * OpenAPI v3 api document controller
@@ -13,7 +13,7 @@ class OpenApiController {
 
     def openApiService
 
-    @ApiDoc(operation = {
+    @OpenApiDoc(operation = {
         summary "OpenApi json documents"
         description "The OpenAPI API v3 json/yaml documents"
         responses "200": {
