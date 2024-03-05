@@ -1,40 +1,20 @@
 package swagger.grails4.openapi.builder
 
+import swagger.grails4.openapi.OpenApiReader
+
 import java.lang.annotation.Annotation
 import java.lang.reflect.Method
 
-/**
- * Provide some utility methods for annotation closure builders.
- * Such as methods to extract properties from OpenAPI annotation.
- * <pre>
- * Require implementing class has below properties:
- * - "openApiAnnotation" property, related OpenAPI annotation class.
- * - "model" property, the OpenAPI model object.
- * </pre>
- * Require implementing class call initPrimitiveElements() in their constructor.
- *
- * @author bo.yang <bo.yang@telecwin.com>
- */
-trait AnnotationBuilder<T> {
-    /**
-     * The builder's production, should be override by implementing class
-     */
+trait OpenApiAnnotationBuilder<T> {
+
     T model
-    /**
-     * The reader that use these builders
-     */
-    swagger.grails4.openapi.Reader reader
+
+    OpenApiReader reader
 
     private List systemMethods = ["equals", "toString", "hashCode", "annotationType"]
 
-    /**
-     * The annotation elements that can be assigned directly to model, it has the same method name in closure.
-     */
     private Set primitiveElements = []
 
-    /**
-     * Extract properties from OpenAPI annotation
-     */
     def initPrimitiveElements() {
         if (Annotation.isAssignableFrom(openApiAnnotationClass)) {
             initAnnotationPrimitiveElements()
@@ -57,17 +37,12 @@ trait AnnotationBuilder<T> {
                 return
             }
             def elementType = method.returnType
-            // add dynamic properties
             String propertyName = method.name
             if (isPrimitiveElement(elementType)) {
-                // assign to model directly
-                // must use getModel() instead of 'this.model' because we need implementing class overridden property
                 if (getModel().hasProperty(propertyName)) {
-                    //Only assign default value if the element is not nullable
                     if (!isPrimitiveNotNullableElement(elementType)) {
                         getModel()[propertyName] = method.defaultValue
                     }
-                    // add to primitive
                     primitiveElements << propertyName
                 }
             }
@@ -95,29 +70,17 @@ trait AnnotationBuilder<T> {
         return false
     }
 
-    /**
-     * For string and string[] annotation attributes we will assign the value to model property.
-     *
-     * @param name method name
-     * @param args method arguments
-     */
     def methodMissing(String name, Object args) {
         if (!primitiveElements) {
             initPrimitiveElements()
         }
-        // assign primitive element value to model directly
+
         if (name in primitiveElements) {
             getModel()[name] = args[0]
         }
     }
 
-    /**
-     * Evaluate closure by delegating to builder and return the production model.
-     * @param closure api doc closure
-     * @param builder annotation builder
-     * @return the builder's model
-     */
-    def <M> M evaluateClosure(Closure closure, AnnotationBuilder<M> builder) {
+    def <M> M evaluateClosure(Closure closure, OpenApiAnnotationBuilder<M> builder) {
         def builderClosure = closure.rehydrate(builder, this, this)
         builderClosure.resolveStrategy = Closure.DELEGATE_ONLY
         builderClosure()

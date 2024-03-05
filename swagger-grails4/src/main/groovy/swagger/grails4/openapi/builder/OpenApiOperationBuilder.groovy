@@ -4,39 +4,29 @@ import io.swagger.v3.oas.models.Operation
 import io.swagger.v3.oas.models.parameters.RequestBody
 import io.swagger.v3.oas.models.security.SecurityRequirement
 import io.swagger.v3.oas.models.tags.Tag
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
+import swagger.grails4.openapi.builder.OpenApiParameterBuilder
+import swagger.grails4.openapi.builder.OpenApiRequestBodyBuilder
+import swagger.grails4.openapi.builder.OpenApiResponseBuilder
+import swagger.grails4.openapi.builder.OpenApiTagBuilder
 
-/**
- * Operation model builder.
- *
- * Delegate object is OpenAPI.
- *
- * @see io.swagger.v3.oas.annotations.Operation
- * @author bo.yang <bo.yang@telecwin.com>
- */
-class OperationBuilder implements AnnotationBuilder<Operation> {
+class OpenApiOperationBuilder implements OpenApiAnnotationBuilder<Operation> {
 
     Operation model = new Operation()
-    /**
-     * needed by AnnotationBuilder trait
-     */
+
     @SuppressWarnings("unused")
     static Class openApiAnnotationClass = io.swagger.v3.oas.annotations.Operation
 
-    OperationBuilder(){
+    OpenApiOperationBuilder(){
         initPrimitiveElements()
     }
 
-    /**
-     * The "parameters" member of @ApiDoc.
-     * @param parameterClosures closure of parameters, delegate to ParameterBuilder.
-     * @return void
-     */
     def parameters(List<Closure> parameterClosures) {
         if (!model.parameters) {
             model.parameters = []
         }
         parameterClosures.each { closure ->
-            ParameterBuilder builder = new ParameterBuilder(reader: reader)
+            OpenApiParameterBuilder builder = new OpenApiParameterBuilder(reader: reader)
             model.parameters << evaluateClosure(closure, builder)
         }
     }
@@ -46,7 +36,7 @@ class OperationBuilder implements AnnotationBuilder<Operation> {
             model.tags = []
         }
         tagClosures.each { closure ->
-            TagBuilder builder = new TagBuilder(reader: reader)
+            OpenApiTagBuilder builder = new OpenApiTagBuilder(reader: reader)
             Tag t = evaluateClosure(closure, builder)
             model.tags << t.name
         }
@@ -70,7 +60,7 @@ class OperationBuilder implements AnnotationBuilder<Operation> {
         }
 
         if (!model.requestBody) {
-            RequestBody body = evaluateClosure(requestBodyClosure, new RequestBodyBuilder(reader: reader))
+            RequestBody body = evaluateClosure(requestBodyClosure, new OpenApiRequestBodyBuilder(reader: reader))
             if (body) {
                 model.requestBody = body
             }
@@ -82,7 +72,7 @@ class OperationBuilder implements AnnotationBuilder<Operation> {
             model.responses = []
         }
         responsesClosures.each { code, closure ->
-            ResponseBuilder builder = new ResponseBuilder(reader: reader)
+            OpenApiAnnotationBuilder builder = new OpenApiResponseBuilder(reader: reader)
             def resp = evaluateClosure(closure, builder)
             model.responses.put(code, resp)
         }

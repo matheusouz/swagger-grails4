@@ -1,16 +1,16 @@
 package swagger.grails4.openapi.builder
 
 import io.swagger.v3.oas.models.parameters.Parameter
+import swagger.grails4.openapi.builder.OpenApiAnnotationBuilder
+import swagger.grails4.openapi.builder.OpenApiSchemaBuilder
 
-class ParameterBuilder implements AnnotationBuilder<Parameter> {
+class OpenApiParameterBuilder implements OpenApiAnnotationBuilder<Parameter> {
     Parameter model = new Parameter()
-    /**
-     * needed by AnnotationBuilder trait
-     */
+
     @SuppressWarnings("unused")
     static Class openApiAnnotationClass = io.swagger.v3.oas.annotations.Parameter
 
-    ParameterBuilder(){
+    OpenApiParameterBuilder(){
         initPrimitiveElements()
     }
 
@@ -18,12 +18,8 @@ class ParameterBuilder implements AnnotationBuilder<Parameter> {
         model.in(inType)
     }
 
-    /**
-     * Build schema from class or closure
-     * @param classOrClosure domain class or schema definition closure
-     */
     def schema(classOrClosure) {
-        SchemaBuilder builder = new SchemaBuilder(reader: reader)
+        OpenApiSchemaBuilder builder = new OpenApiSchemaBuilder(reader: reader)
         model.schema = builder.buildSchema(classOrClosure)
     }
 }
